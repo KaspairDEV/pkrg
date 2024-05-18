@@ -2,7 +2,7 @@ import SettingsUiHandler from "#app/ui/settings-ui-handler";
 import { Mode } from "#app/ui/ui";
 import i18next from "i18next";
 import BattleScene from "../battle-scene";
-import { hasTouchscreen } from "../touch-controls";
+import { hasTouchscreen, isMobile } from "../touch-controls";
 import { updateWindowType } from "../ui/ui-theme";
 import { PlayerGender } from "./game-data";
 
@@ -167,6 +167,18 @@ export function setSetting(scene: BattleScene, setting: Setting, value: integer)
       const touchControls = document.getElementById('touchControls');
       if (touchControls)
         touchControls.classList.toggle('visible', scene.enableTouchControls);
+
+      const isLandscape = window.matchMedia("(orientation: landscape)").matches;
+      const appContainer = document.getElementById('app');
+
+      if (!isMobile() && isLandscape && !scene.enableTouchControls) {
+        // Value of 1920 should be the same with config.scale.width on src/main.ts
+        // We do not want to set align-items property when the CSS transform scale's x and y value would be greater than 1 
+        if (window.innerWidth < 1920)
+          appContainer.style.alignItems = 'center';
+      } else {
+        appContainer.style.alignItems = 'start';
+      }
       break;
     case Setting.Vibration:
       scene.enableVibration = settingOptions[setting][value] !== 'Disabled' && hasTouchscreen();
