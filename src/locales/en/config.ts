@@ -20,9 +20,10 @@ import { tutorial } from "./tutorial";
 import { weather } from "./weather";
 import { battleMessageUiHandler } from "./battle-message-ui-handler";
 import { berry } from "./berry";
+import { gameStatsUiHandler } from "./game-stats-ui-handler";
 import { voucher } from "./voucher";
 
-export const enConfig = {    
+export const enConfig = {
   ability: ability,
   abilityTriggers: abilityTriggers,
   battle: battle,
@@ -47,5 +48,6 @@ export const enConfig = {
   weather: weather,
   battleMessageUiHandler: battleMessageUiHandler,
   berry: berry,
+  gameStatsUiHandler: gameStatsUiHandler,
   voucher: voucher,
 };
