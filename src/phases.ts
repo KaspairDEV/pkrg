@@ -1058,6 +1058,7 @@ export class PostSummonPhase extends PokemonPhase {
     super.start();
 
     const pokemon = this.getPokemon();
+    pokemon.removeTag(BattlerTagType.IMPRISONING);
 
     this.scene.arena.applyTags(ArenaTrapTag, pokemon);
     applyPostSummonAbAttrs(PostSummonAbAttr, pokemon).then(() => this.end());
