@@ -1152,9 +1152,9 @@ export class MagnetRisenTag extends TypeImmuneTag {
  * @see {@linkcode lapse}
  * @see {@linkcode getDescriptor}
  */
-export class ImprisoningTag extends BattlerTag {
+export class ImprisonTag extends BattlerTag {
   constructor(sourceMove: Integer) {
-    super(BattlerTagType.IMPRISONING, BattlerTagLapseType.CUSTOM, Number.MAX_SAFE_INTEGER, sourceMove);
+    super(BattlerTagType.IMPRISON, BattlerTagLapseType.CUSTOM, Number.MAX_SAFE_INTEGER, sourceMove);
   }
 
   /**
@@ -1453,8 +1453,8 @@ export function getBattlerTag(tagType: BattlerTagType, turnCount: integer, sourc
       return new MagnetRisenTag(tagType, sourceMove);
     case BattlerTagType.MINIMIZED:
       return new MinimizeTag();
-    case BattlerTagType.IMPRISONING:
-      return new ImprisoningTag(sourceMove);
+    case BattlerTagType.IMPRISON:
+      return new ImprisonTag(sourceMove);
     case BattlerTagType.NONE:
     default:
         return new BattlerTag(tagType, BattlerTagLapseType.CUSTOM, turnCount, sourceMove, sourceId);
