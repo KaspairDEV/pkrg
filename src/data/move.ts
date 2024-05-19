@@ -3304,6 +3304,10 @@ export class FaintCountdownAttr extends AddBattlerTagAttr {
   }
 }
 
+/**
+ * Attribue used when a pokemon using Imprison. It will add the {@link BattlerTagType.IMPRISONING} tag to the pokemon, which is checked by opposing pokemon to restrict their moves.
+ * @extends AddBattlerTagAttr
+ */
 export class ImprisonAttr extends AddBattlerTagAttr {
   constructor(selfTarget?: boolean) {
     super(BattlerTagType.IMPRISONING, selfTarget, true, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
