@@ -555,6 +555,31 @@ export class MoveEffectAttr extends MoveAttr {
   }
 }
 
+export class RemoveBeakBlastTagArr extends MoveEffectAttr {
+    constructor() {
+        super(true, MoveEffectTrigger.PRE_APPLY, false);
+    }
+
+    canApply(user: Pokemon, target: Pokemon, move: Move, args: any[]) {
+        // We want to remove the tag at the start of the second portion of beak blast 
+        // to not burn lower priority contact moves like dragon tail:
+        // we want to return false if checking during the move effect phase of the first portion,
+        // and return true if checking during the move effect phase of the second portion.
+        // We can check the user's previous move to see if it was beak blast's (690) first portion or not
+
+        return (user.getLastXMoves(1)[0] && user.getLastXMoves(1)[0].move == Moves.BEAK_BLAST);
+    }
+
+    apply(user: Pokemon, target: Pokemon, move: Move, args: any[]) {
+        const canApply = this.canApply(user, target, move, args);
+
+        if (canApply)
+            user.removeTag(BattlerTagType.BEAK_BLAST);
+
+        return canApply;
+    }
+}
+
 export class PreMoveMessageAttr extends MoveAttr {
   private message: string | ((user: Pokemon, target: Pokemon, move: Move) => string);
 
@@ -1762,7 +1787,7 @@ export class ChargeAttr extends OverrideMoveEffectAttr {
             applyMoveAttrs(MoveEffectAttr, user, target, move);
           user.pushMoveHistory({ move: move.id, targets: [ target.getBattlerIndex() ], result: MoveResult.OTHER });
           user.getMoveQueue().push({ move: move.id, targets: [ target.getBattlerIndex() ], ignorePP: true });
-          if (this.sameTurn)
+          if (this.sameTurn) // for beak blast atm
             user.scene.pushMovePhase(new MovePhase(user.scene, user, [ target.getBattlerIndex() ], user.moveset.find(m => m.moveId === move.id), true), this.followUpPriority);
           user.addTag(BattlerTagType.CHARGING, 1, move.id, user.id);
           resolve(true);
@@ -6657,10 +6682,10 @@ export function initMoves() {
     new StatusMove(Moves.INSTRUCT, Type.PSYCHIC, -1, 15, -1, 0, 7)
       .unimplemented(),
     new AttackMove(Moves.BEAK_BLAST, Type.FLYING, MoveCategory.PHYSICAL, 100, 100, 15, -1, 5, 7)
-      .attr(ChargeAttr, ChargeAnim.BEAK_BLAST_CHARGING, "started\nheating up its beak!", undefined, false, true, -3)
+      .attr(ChargeAttr, ChargeAnim.BEAK_BLAST_CHARGING, "started\nheating up its beak!", BattlerTagType.BEAK_BLAST, true, true, -3)
       .ballBombMove()
       .makesContact(false)
-      .partial(),
+      .attr(RemoveBeakBlastTagArr),
     new AttackMove(Moves.CLANGING_SCALES, Type.DRAGON, MoveCategory.SPECIAL, 110, 100, 5, 100, 0, 7)
       .attr(StatChangeAttr, BattleStat.DEF, -1, true)
       .soundBased()
