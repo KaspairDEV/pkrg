@@ -1142,20 +1142,35 @@ export class PostAttackAbAttr extends AbAttr {
   }
 }
 
+/**
+ * Has a chance to steal the target's held item after a successful attack
+ * @extends PostAttackAbAttr
+ * @param {integer} chance The chance out of 100 for this ability to proc after a successful attack
+ * @see {@linkcode applyPostAttack}
+ */
 export class PostAttackStealHeldItemAbAttr extends PostAttackAbAttr {
-  private condition: PokemonAttackCondition;
+  private chance: integer;
 
-  constructor(condition?: PokemonAttackCondition) {
+  constructor(chance?: integer) {
     super();
 
-    this.condition = condition;
+    this.chance = chance;
   }
 
+  /**
+   * Steals the held item if the chance is met
+   * @param {Pokemon} pokemon Pokemon that has this ability 
+   * @param {boolean} passive N/A
+   * @param {Pokemon} defender target which may have its item stolen 
+   * @param {PokemonMove} move N/A
+   * @param {HitResult} hitResult whether the move was successful
+   * @param {any[]} args N/A
+   */
   applyPostAttack(pokemon: Pokemon, passive: boolean, defender: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): Promise<boolean> {
     return new Promise<boolean>(resolve => {
-      if (hitResult < HitResult.NO_EFFECT && (!this.condition || this.condition(pokemon, defender, move.getMove()))) {
+      if (hitResult < HitResult.NO_EFFECT) {
         const heldItems = this.getTargetHeldItems(defender).filter(i => i.getTransferrable(false));
-        if (heldItems.length) {
+        if (heldItems.length && Utils.randSeedInt(100) < this.chance) {
           const stolenItem = heldItems[pokemon.randSeedInt(heldItems.length)];
           pokemon.scene.tryTransferHeldItemModifier(stolenItem, pokemon, false, false).then(success => {
             if (success) {
@@ -1170,6 +1185,11 @@ export class PostAttackStealHeldItemAbAttr extends PostAttackAbAttr {
     });
   }
 
+  /**
+   * Gets the target's held items
+   * @param {Pokemon} target Pokemon to steal from 
+   * @returns {PokemonHeldItemModifier[]} List of items held by target
+   */
   getTargetHeldItems(target: Pokemon): PokemonHeldItemModifier[] {
     return target.scene.findModifiers(m => m instanceof PokemonHeldItemModifier
       && (m as PokemonHeldItemModifier).pokemonId === target.id, target.isPlayer()) as PokemonHeldItemModifier[];
@@ -1231,20 +1251,38 @@ export class PostAttackApplyBattlerTagAbAttr extends PostAttackAbAttr {
   }
 }
 
+/**
+ * Has a chance to steal the attackers's held item after a successful attack meeting a certain condition
+ * @extends PostDefendAbAttr
+ * @param {integer} chance The chance out of 100 for this ability to proc after a successful attack
+ * @param {PokemonDefendCondition} condition condition that must be met regarding the target, attacker or move to trigger the ability
+ * @see {@linkcode applyPostDefend}
+ */
 export class PostDefendStealHeldItemAbAttr extends PostDefendAbAttr {
   private condition: PokemonDefendCondition;
+  private chance: integer; //Proc chance out of 100
 
-  constructor(condition?: PokemonDefendCondition) {
+  constructor(condition?: PokemonDefendCondition, chance?: integer) {
     super();
 
     this.condition = condition;
+    this.chance = chance;
   }
-
+  
+  /**
+   * Steals the held item if the chance is met
+   * @param {Pokemon} pokemon Pokemon that has this ability 
+   * @param {boolean} passive N/A
+   * @param {Pokemon} attacker attacker which may have its item stolen 
+   * @param {PokemonMove} move the move the attacker used
+   * @param {HitResult} hitResult whether the move was successful
+   * @param {any[]} args N/A
+   */
   applyPostDefend(pokemon: Pokemon, passive: boolean, attacker: Pokemon, move: PokemonMove, hitResult: HitResult, args: any[]): Promise<boolean> {
     return new Promise<boolean>(resolve => {
       if (hitResult < HitResult.NO_EFFECT && (!this.condition || this.condition(pokemon, attacker, move.getMove()))) {
         const heldItems = this.getTargetHeldItems(attacker).filter(i => i.getTransferrable(false));
-        if (heldItems.length) {
+        if (heldItems.length && Utils.randSeedInt(100) < this.chance) {
           const stolenItem = heldItems[pokemon.randSeedInt(heldItems.length)];
           pokemon.scene.tryTransferHeldItemModifier(stolenItem, pokemon, false, false).then(success => {
             if (success) {
@@ -1259,6 +1297,11 @@ export class PostDefendStealHeldItemAbAttr extends PostDefendAbAttr {
     });
   }
 
+  /**
+   * Gets the target's held items
+   * @param {Pokemon} target Pokemon to steal from 
+   * @returns {PokemonHeldItemModifier[]} List of items held by target
+   */
   getTargetHeldItems(target: Pokemon): PokemonHeldItemModifier[] {
     return target.scene.findModifiers(m => m instanceof PokemonHeldItemModifier
       && (m as PokemonHeldItemModifier).pokemonId === target.id, target.isPlayer()) as PokemonHeldItemModifier[];
@@ -3479,7 +3522,7 @@ export function initAbilities() {
     new Ability(Abilities.BAD_DREAMS, 4)
       .attr(PostTurnHurtIfSleepingAbAttr),
     new Ability(Abilities.PICKPOCKET, 5)
-      .attr(PostDefendStealHeldItemAbAttr, (target, user, move) => move.hasFlag(MoveFlags.MAKES_CONTACT)),
+      .attr(PostDefendStealHeldItemAbAttr, (target, user, move) => move.hasFlag(MoveFlags.MAKES_CONTACT), 50),
     new Ability(Abilities.SHEER_FORCE, 5)
       .unimplemented(),
     new Ability(Abilities.CONTRARY, 5)
@@ -3618,7 +3661,7 @@ export function initAbilities() {
       .attr(ReceivedMoveDamageMultiplierAbAttr, (target, user, move) => move.category === MoveCategory.PHYSICAL, 0.5)
       .ignorable(),
     new Ability(Abilities.MAGICIAN, 6)
-      .attr(PostAttackStealHeldItemAbAttr),
+      .attr(PostAttackStealHeldItemAbAttr, 30),
     new Ability(Abilities.BULLETPROOF, 6)
       .attr(MoveImmunityAbAttr, (pokemon, attacker, move) => pokemon !== attacker && move.getMove().hasFlag(MoveFlags.BALLBOMB_MOVE))
       .ignorable(),
