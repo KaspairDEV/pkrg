@@ -202,6 +202,8 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
   private shinyIcons: Phaser.GameObjects.Image[][];
   private hiddenAbilityIcons: Phaser.GameObjects.Image[];
   private classicWinIcons: Phaser.GameObjects.Image[];
+  private candyUpgradeIcon: Phaser.GameObjects.Image[];
+  private candyUpgradeOverlayIcon: Phaser.GameObjects.Image[];
 
   private iconAnimHandler: PokemonIconAnimHandler;
 
@@ -464,7 +466,29 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
       return ret;
     });
 
-    this.pokemonSprite = this.scene.add.sprite(53, 63, "pkmn__sub");
+    this.candyUpgradeIcon = new Array(81).fill(null).map((_, i) => {
+      const x = (i % 9) * 18;
+      const y = Math.floor(i / 9) * 18;
+      const ret = this.scene.add.image(x + 163, y + 21, 'candy');
+      ret.setOrigin(0, 0);
+      ret.setScale(0.25);
+      ret.setVisible(false);
+      this.starterSelectContainer.add(ret);
+      return ret;
+    });
+
+    this.candyUpgradeOverlayIcon = new Array(81).fill(null).map((_, i) => {
+      const x = (i % 9) * 18;
+      const y = Math.floor(i / 9) * 18;
+      const ret = this.scene.add.image(x + 163, y + 21, 'candy_overlay');
+      ret.setOrigin(0, 0);
+      ret.setScale(0.25);
+      ret.setVisible(false);
+      this.starterSelectContainer.add(ret);
+      return ret;
+    });
+    
+    this.pokemonSprite = this.scene.add.sprite(53, 63, `pkmn__sub`);
     this.pokemonSprite.setPipeline(this.scene.spritePipeline, { tone: [ 0.0, 0.0, 0.0, 0.0 ], ignoreTimeTint: true });
     this.starterSelectContainer.add(this.pokemonSprite);
 
@@ -673,7 +697,7 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
           }
         });
       }
-
+      
       this.starterSelectCallback = args[0] as StarterSelectCallback;
 
       this.starterSelectContainer.setVisible(true);
@@ -948,6 +972,10 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
                         return this.scene.reset(true);
                       }
                     });
+                    // If the setting is not set to 0, update the candy upgrade icon
+                    if (this.scene.candyUpgradeNotification !== 0) {
+                      this.updateCandyUpgradeIcon(this.cursor);
+                    }
                     ui.setMode(Mode.STARTER_SELECT);
                     this.setSpeciesDetails(this.lastSpecies, undefined, undefined, undefined, undefined, undefined, undefined);
                     return true;
@@ -973,6 +1001,10 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
                         return this.scene.reset(true);
                       }
                     });
+                    // If the setting is set to 2, update the candy upgrade icon
+                    if (this.scene.candyUpgradeNotification === 2) {
+                      this.updateCandyUpgradeIcon(this.cursor);
+                    }
                     this.updateStarterValueLabel(this.cursor);
                     this.tryUpdateValue(0);
                     ui.setMode(Mode.STARTER_SELECT);
@@ -1295,6 +1327,46 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
         }
         this.hiddenAbilityIcons[s].setVisible(slotVisible && !!this.scene.gameData.dexData[speciesId].caughtAttr && !!(this.scene.gameData.starterData[speciesId].abilityAttr & 4));
         this.classicWinIcons[s].setVisible(slotVisible && this.scene.gameData.starterData[speciesId].classicWinCount > 0);
+
+        // 'Candy Icon' mode
+        if (this.scene.candyUpgradeDisplay == 0) {
+          // kill the animation if it's running
+
+          if (!starterColors[speciesId]) {
+            // Default to white if no colors are found
+            starterColors[speciesId] = [ 'ffffff', 'ffffff' ];
+          }
+
+          // Set the candy colors
+          this.candyUpgradeIcon[s].setTint(argbFromRgba(Utils.rgbHexToRgba(starterColors[speciesId][0])));
+          this.candyUpgradeOverlayIcon[s].setTint(argbFromRgba(Utils.rgbHexToRgba(starterColors[speciesId][1])));
+          
+          // 'Off' mode
+          if (this.scene.candyUpgradeNotification == 0) { 
+            this.candyUpgradeIcon[s].setVisible(false);
+            this.candyUpgradeOverlayIcon[s].setVisible(false);
+
+            // 'Only Passive Unlocks' mode
+          } else if (this.scene.candyUpgradeNotification == 1) { 
+            this.candyUpgradeIcon[s].setVisible(
+              slotVisible && (
+                this.scene.gameData.starterData[speciesId].candyCount >= getPassiveCandyCount(speciesStarters[speciesId]) &&
+                !(this.scene.gameData.starterData[speciesId].passiveAttr & PassiveAttr.UNLOCKED)));
+            this.candyUpgradeOverlayIcon[s].setVisible(slotVisible && this.candyUpgradeIcon[s].visible);
+
+            // 'On' mode
+          } else if (this.scene.candyUpgradeNotification == 2) { 
+            this.candyUpgradeIcon[s].setVisible(
+              slotVisible && (
+                (this.scene.gameData.starterData[speciesId].candyCount >= getPassiveCandyCount(speciesStarters[speciesId]) &&
+                !(this.scene.gameData.starterData[speciesId].passiveAttr & PassiveAttr.UNLOCKED)) || 
+                (this.scene.gameData.starterData[speciesId].candyCount >= getValueReductionCandyCounts(speciesStarters[speciesId])[this.scene.gameData.starterData[speciesId].valueReduction] && 
+                this.scene.gameData.starterData[speciesId].valueReduction < 2)));
+              this.candyUpgradeOverlayIcon[s].setVisible(slotVisible && this.candyUpgradeIcon[s].visible);
+          }
+        } else if (this.scene.candyUpgradeDisplay == 1) {
+          // animate the pokemon icon. receive the pokemon icon
+        }
       }
     } else {
       changed = super.setCursor(cursor);
@@ -1798,6 +1870,34 @@ export default class StarterSelectUiHandler extends MessageUiHandler {
     }
     this.starterValueLabels[cursor].setColor(this.getTextColor(textStyle));
     this.starterValueLabels[cursor].setShadowColor(this.getTextColor(textStyle, true));
+  }
+
+  updateCandyUpgradeIcon(cursor: integer): void {
+    const speciesId = this.genSpecies[this.getGenCursorWithScroll()][cursor].speciesId;
+
+    switch (this.scene.candyUpgradeNotification) {
+      // 'Off' mode
+      case 0: 
+          return;
+
+      // 'Only Passive Unlocks' mode
+      case 1: 
+        this.candyUpgradeIcon[cursor].setVisible(this.scene.gameData.starterData[speciesId].candyCount >= getPassiveCandyCount(speciesStarters[speciesId]) && !(this.scene.gameData.starterData[speciesId].passiveAttr & PassiveAttr.UNLOCKED));
+        this.candyUpgradeOverlayIcon[cursor].setVisible(this.candyUpgradeIcon[cursor].visible);
+        return;
+
+      // 'On' mode
+      case 2: 
+        this.candyUpgradeIcon[cursor].setVisible(
+            (this.scene.gameData.starterData[speciesId].candyCount >= getPassiveCandyCount(speciesStarters[speciesId]) && !(this.scene.gameData.starterData[speciesId].passiveAttr & PassiveAttr.UNLOCKED)) ||
+            (this.scene.gameData.starterData[speciesId].candyCount >= getValueReductionCandyCounts(speciesStarters[speciesId])[this.scene.gameData.starterData[speciesId].valueReduction]) &&
+            this.scene.gameData.starterData[speciesId].valueReduction < 2);
+        this.candyUpgradeOverlayIcon[cursor].setVisible(this.candyUpgradeIcon[cursor].visible);
+        return;
+
+      default:
+        return;
+    }
   }
 
   tryUpdateValue(add?: integer): boolean {
