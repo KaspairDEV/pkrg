@@ -1640,6 +1640,9 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
 
           console.log('damage', damage.value, move.name, power.value, sourceAtk, targetDef);
 
+          // In case of fatal damage, this tag would have gotten cleared before we could lapse it.
+          const destinyTag = this.getTag(BattlerTagType.DESTINY_BOND);
+          
           const oneHitKo = result === HitResult.ONE_HIT_KO;
           if (damage.value) {
             if (this.getHpRatio() === 1)
@@ -1694,8 +1697,12 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
             this.resetSummonData();
           }
 
-          if (damage)
+          if (damage) {
             this.scene.clearPhaseQueueSplice();
+
+            const attacker = this.scene.getPokemonById(source.id);
+            destinyTag?.lapse(attacker, BattlerTagLapseType.CUSTOM);
+          }
         }
         break;
       case MoveCategory.STATUS:
