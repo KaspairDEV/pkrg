@@ -19,7 +19,7 @@ import { pokemonEvolutions, pokemonPrevolutions, SpeciesFormEvolution, SpeciesEv
 import { reverseCompatibleTms, tmSpecies, tmPoolTiers } from '../data/tms';
 import { DamagePhase, FaintPhase, LearnMovePhase, ObtainStatusEffectPhase, StatChangePhase, SwitchPhase, SwitchSummonPhase, ToggleDoublePositionPhase  } from '../phases';
 import { BattleStat } from '../data/battle-stat';
-import { BattlerTag, BattlerTagLapseType, EncoreTag, HelpingHandTag, HighestStatBoostTag, TypeBoostTag, getBattlerTag } from '../data/battler-tags';
+import { BattlerTag, BattlerTagLapseType, EncoreTag, HelpingHandTag, HighestStatBoostTag, TauntTag, TypeBoostTag, getBattlerTag } from '../data/battler-tags';
 import { BattlerTagType } from "../data/enums/battler-tag-type";
 import { Species } from '../data/enums/species';
 import { WeatherType } from '../data/weather';
@@ -1775,7 +1775,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     const newTag = getBattlerTag(tagType, turnCount, sourceMove, sourceId);
 
     const cancelled = new Utils.BooleanHolder(false);
-    applyPreApplyBattlerTagAbAttrs(PreApplyBattlerTagAbAttr, this, newTag, cancelled);
+    applyPreApplyBattlerTagAbAttrs(PreApplyBattlerTagAbAttr, this, newTag, cancelled, newTag);
 
     if (!cancelled.value && newTag.canAdd(this)) {
       this.summonData.tags.push(newTag);
@@ -3394,6 +3394,8 @@ export class PokemonSummonData {
   public moveQueue: QueuedMove[] = [];
   public disabledMove: Moves = Moves.NONE;
   public disabledTurns: integer = 0;
+  public tormented = false;
+  public prevMove: Moves = undefined; // for torment, carry over between battles while summoned
   public tags: BattlerTag[] = [];
   public abilitySuppressed: boolean = false;
 
@@ -3474,7 +3476,15 @@ export class PokemonMove {
   }
 
   isUsable(pokemon: Pokemon, ignorePp?: boolean): boolean {
-    if (this.moveId && pokemon.summonData?.disabledMove === this.moveId)
+    const isMoveDisabled = this.moveId && pokemon.summonData?.disabledMove === this.moveId;
+    
+    // for taunt: check valid move, pokemon is taunted, and move is status
+    const isMoveDisabledTaunt = this.moveId && (pokemon.findTag(t => t instanceof TauntTag) !== undefined) && this.getMove().category === MoveCategory.STATUS;
+
+    // for torment: check valid move, pokemon is tormented, pokemon has moved this summon, and selected move is the same as previous move
+    const isMoveDisabledTorment = this.moveId && pokemon.summonData.tormented && pokemon.summonData.prevMove === this.moveId;
+    
+    if (isMoveDisabled || isMoveDisabledTaunt || isMoveDisabledTorment)
       return false;
     return (ignorePp || this.ppUsed < this.getMovePp() || this.getMove().pp === -1) && !this.getMove().name.endsWith(' (N)');
   }

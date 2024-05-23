@@ -2,7 +2,7 @@ import BattleScene, { AnySound, bypassLogin, startingWave } from "./battle-scene
 import { default as Pokemon, PlayerPokemon, EnemyPokemon, PokemonMove, MoveResult, DamageResult, FieldPosition, HitResult, TurnMove } from "./field/pokemon";
 import * as Utils from './utils';
 import { Moves } from "./data/enums/moves";
-import { allMoves, applyMoveAttrs, BypassSleepAttr, ChargeAttr, applyFilteredMoveAttrs, HitsTagAttr, MissEffectAttr, MoveAttr, MoveEffectAttr, MoveFlags, MultiHitAttr, OverrideMoveEffectAttr, VariableAccuracyAttr, MoveTarget, OneHitKOAttr, getMoveTargets, MoveTargetSet, MoveEffectTrigger, CopyMoveAttr, AttackMove, SelfStatusMove, DelayedAttackAttr, RechargeAttr, PreMoveMessageAttr, HealStatusEffectAttr, IgnoreOpponentStatChangesAttr, NoEffectAttr, BypassRedirectAttr, FixedDamageAttr, PostVictoryStatChangeAttr, OneHitKOAccuracyAttr, ForceSwitchOutAttr, VariableTargetAttr, SacrificialAttr, IncrementMovePriorityAttr  } from "./data/move";
+import { allMoves, applyMoveAttrs, BypassSleepAttr, ChargeAttr, applyFilteredMoveAttrs, HitsTagAttr, MissEffectAttr, MoveAttr, MoveEffectAttr, MoveFlags, MultiHitAttr, OverrideMoveEffectAttr, VariableAccuracyAttr, MoveTarget, OneHitKOAttr, getMoveTargets, MoveTargetSet, MoveEffectTrigger, CopyMoveAttr, AttackMove, SelfStatusMove, DelayedAttackAttr, RechargeAttr, PreMoveMessageAttr, HealStatusEffectAttr, IgnoreOpponentStatChangesAttr, NoEffectAttr, BypassRedirectAttr, FixedDamageAttr, PostVictoryStatChangeAttr, OneHitKOAccuracyAttr, ForceSwitchOutAttr, VariableTargetAttr, SacrificialAttr, IncrementMovePriorityAttr, MoveCategory } from "./data/move";
 import { Mode } from './ui/ui';
 import { Command } from "./ui/command-ui-handler";
 import { Stat } from "./data/pokemon-stat";
@@ -21,7 +21,7 @@ import { Biome } from "./data/enums/biome";
 import { ModifierTier } from "./modifier/modifier-tier";
 import { FusePokemonModifierType, ModifierPoolType, ModifierType, ModifierTypeFunc, ModifierTypeOption, PokemonModifierType, PokemonMoveModifierType, PokemonPpRestoreModifierType, PokemonPpUpModifierType, RememberMoveModifierType, TmModifierType, getDailyRunStarterModifiers, getEnemyBuffModifierForWave, getModifierType, getPlayerModifierTypeOptions, getPlayerShopModifierTypeOptionsForWave, modifierTypes, regenerateModifierPoolThresholds } from "./modifier/modifier-type";
 import SoundFade from "phaser3-rex-plugins/plugins/soundfade";
-import { BattlerTagLapseType, EncoreTag, HideSpriteTag as HiddenTag, ProtectedTag, TrappedTag } from "./data/battler-tags";
+import { BattlerTagLapseType, EncoreTag, HideSpriteTag as HiddenTag, ProtectedTag, TauntTag, TrappedTag } from "./data/battler-tags";
 import { BattlerTagType } from "./data/enums/battler-tag-type";
 import { getPokemonMessage, getPokemonPrefix } from "./messages";
 import { Starter } from "./ui/starter-select-ui-handler";
@@ -1739,13 +1739,27 @@ export class CommandPhase extends FieldPhase {
           const move = playerPokemon.getMoveset()[cursor];
           this.scene.ui.setMode(Mode.MESSAGE);
 
-          // Decides between a Disabled, Not Implemented, or No PP translation message
-          const errorMessage = 
-            playerPokemon.summonData.disabledMove === move.moveId ? 'battle:moveDisabled' : 
-            move.getName().endsWith(' (N)') ? 'battle:moveNotImplemented' : 'battle:moveNoPP';
+          // Decides between a Disabled, Not Implemented, Taunted, Tormented, or No PP translation message
+          var errorMessage;
+          var canTranslate = true;
+          
+          if (playerPokemon.summonData.disabledMove === move.moveId)
+            errorMessage = 'battle:moveDisabled';
+          else if (move.getName().endsWith(' (N)'))
+            errorMessage = 'battle:moveNotImplemented';
+          else if (playerPokemon.summonData.tormented && playerPokemon.summonData.prevMove === move.moveId) {
+            errorMessage = getPokemonMessage(playerPokemon, ' can\'t use the same move twice in a row due to the torment!');
+            canTranslate = false;
+          } else if ((playerPokemon.findTag(t => t instanceof TauntTag) !== undefined) && move.getMove().category === MoveCategory.STATUS) {
+            errorMessage = getPokemonMessage(playerPokemon, ' can\'t use ' + move.getName() + ' after the taunt!');
+            canTranslate = false;
+          } else
+            errorMessage = 'battle:moveNoPP';
+
           const moveName = move.getName().replace(' (N)', ''); // Trims off the indicator
 
-          this.scene.ui.showText(i18next.t(errorMessage, { moveName: moveName }), null, () => {
+          errorMessage = canTranslate ? i18next.t(errorMessage, { moveName: moveName }) : errorMessage;
+          this.scene.ui.showText(errorMessage, null, () => {
             this.scene.ui.clearText();
             this.scene.ui.setMode(Mode.FIGHT, this.fieldIndex);
           }, null, true);
@@ -2142,7 +2156,10 @@ export class TurnEndPhase extends FieldPhase {
     
     const handlePokemon = (pokemon: Pokemon) => {
       pokemon.lapseTags(BattlerTagLapseType.TURN_END);
-      
+
+      // For torment, keep track of last used move. This remains between battles while the pokemon is still on the field.
+      pokemon.summonData.prevMove = pokemon.getLastXMoves(1)[0] ? pokemon.getLastXMoves(1)[0].move : undefined;
+
       if (pokemon.summonData.disabledMove && !--pokemon.summonData.disabledTurns) {
         this.scene.pushPhase(new MessagePhase(this.scene, i18next.t('battle:notDisabled', { pokemonName: `${getPokemonPrefix(pokemon)}${pokemon.name}`, moveName: allMoves[pokemon.summonData.disabledMove].name })));
         pokemon.summonData.disabledMove = Moves.NONE;
@@ -2286,9 +2303,18 @@ export class MovePhase extends BattlePhase {
 
     console.log(Moves[this.move.moveId]);
 
+    const tauntTag = this.pokemon.findTag(t => t instanceof TauntTag); // undefined if pokemon is not taunted
+
+    // decrement from taunt timer if target was taunted before moving
+    if (tauntTag && (tauntTag as TauntTag).justTaunted)
+        tauntTag.lapse(this.pokemon, BattlerTagLapseType.MOVE); 
+
     if (!this.canMove()) {
       if (this.move.moveId && this.pokemon.summonData.disabledMove === this.move.moveId)
         this.scene.queueMessage(`${this.move.getName()} is disabled!`);
+      else if (tauntTag && this.move.getMove().category === MoveCategory.STATUS) {
+        this.scene.queueMessage(getPokemonMessage(this.pokemon, ' can\'t use ' + this.move.getName() + ' after the taunt!'))
+      }
       return this.end();
     }
 

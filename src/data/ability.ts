@@ -1813,7 +1813,7 @@ export class BattlerTagImmunityAbAttr extends PreApplyBattlerTagAbAttr {
   }
 
   getTriggerMessage(pokemon: Pokemon, abilityName: string, ...args: any[]): string {
-    return getPokemonMessage(pokemon, `'s ${abilityName}\nprevents ${(args[0] as BattlerTag).getDescriptor()}!`);
+    return getPokemonMessage(pokemon, `'s ${abilityName}\nprevents ${(args[0] as BattlerTag)[0].getDescriptor()}!`);
   }
 }
 
@@ -3126,8 +3126,10 @@ export function initAbilities() {
       .ignorable(),
     new Ability(Abilities.OBLIVIOUS, 3)
       .attr(BattlerTagImmunityAbAttr, BattlerTagType.INFATUATED)
+      .attr(BattlerTagImmunityAbAttr, BattlerTagType.TAUNT)
       .attr(IntimidateImmunityAbAttr)
-      .ignorable(),
+      .ignorable()
+      .partial(),
     new Ability(Abilities.CLOUD_NINE, 3)
       .attr(SuppressWeatherEffectAbAttr, true),
     new Ability(Abilities.COMPOUND_EYES, 3)
@@ -3572,8 +3574,12 @@ export function initAbilities() {
       .attr(PostSummonMessageAbAttr, (pokemon: Pokemon) => getPokemonMessage(pokemon, ' is radiating a bursting aura!'))
       .attr(MoveAbilityBypassAbAttr),
     new Ability(Abilities.AROMA_VEIL, 6)
+      .attr(BattlerTagImmunityAbAttr, BattlerTagType.INFATUATED)
+      .attr(BattlerTagImmunityAbAttr, BattlerTagType.TORMENT)
+      .attr(BattlerTagImmunityAbAttr, BattlerTagType.TAUNT)
+      .attr(BattlerTagImmunityAbAttr, BattlerTagType.ENCORE)
       .ignorable()
-      .unimplemented(),
+      .partial(),
     new Ability(Abilities.FLOWER_VEIL, 6)
       .ignorable()
       .unimplemented(),

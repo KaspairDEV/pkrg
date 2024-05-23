@@ -2,7 +2,7 @@ import { Moves } from "./enums/moves";
 import { ChargeAnim, MoveChargeAnim, initMoveAnim, loadMoveAnimAssets } from "./battle-anims";
 import { BattleEndPhase, MoveEffectPhase, MovePhase, NewBattlePhase, PartyStatusCurePhase, PokemonHealPhase, StatChangePhase, SwitchSummonPhase, ToggleDoublePositionPhase } from "../phases";
 import { BattleStat, getBattleStatName } from "./battle-stat";
-import { EncoreTag } from "./battler-tags";
+import { EncoreTag, TauntTag, TormentTag } from "./battler-tags";
 import { BattlerTagType } from "./enums/battler-tag-type";
 import { getPokemonMessage } from "../messages";
 import Pokemon, { AttackMoveResult, EnemyPokemon, HitResult, MoveResult, PlayerPokemon, PokemonMove, TurnMove } from "../field/pokemon";
@@ -3332,7 +3332,7 @@ export class AddBattlerTagAttr extends MoveEffectAttr {
 
     const chance = this.getTagChance(user, target, move);
     if (chance < 0 || chance === 100 || user.randSeedInt(100) < chance)
-      return (this.selfTarget ? user : target).addTag(this.tagType,  user.randSeedInt(this.turnCountMax - this.turnCountMin, this.turnCountMin), move.id, user.id);
+      return (this.selfTarget ? user : target).addTag(this.tagType, user.randSeedInt(this.turnCountMax - this.turnCountMin, this.turnCountMin), move.id, user.id);
 
     return false;
   }
@@ -3358,6 +3358,8 @@ export class AddBattlerTagAttr extends MoveEffectAttr {
       case BattlerTagType.NIGHTMARE:
       case BattlerTagType.DROWSY:
       case BattlerTagType.NO_CRIT:
+      case BattlerTagType.TORMENT:
+      case BattlerTagType.TAUNT:
           return -5;
       case BattlerTagType.SEEDED:
       case BattlerTagType.SALT_CURED:
@@ -5460,7 +5462,10 @@ export function initMoves() {
       .attr(WeatherChangeAttr, WeatherType.HAIL)
       .target(MoveTarget.BOTH_SIDES),
     new StatusMove(Moves.TORMENT, Type.DARK, 100, 15, -1, 0, 3)
-      .unimplemented(),
+      .attr(AddBattlerTagAttr, BattlerTagType.TORMENT)
+      .condition((user, target, move) => (!target.summonData.tormented && (target.findTag(t => t instanceof TormentTag) === undefined)))
+      .condition((user, target, move) => (!target.isMax()))
+      .partial(),
     new StatusMove(Moves.FLATTER, Type.DARK, 100, 15, -1, 0, 3)
       .attr(StatChangeAttr, BattleStat.SPATK, 1)
       .attr(ConfuseAttr),
@@ -5489,7 +5494,9 @@ export function initMoves() {
       .attr(StatChangeAttr, BattleStat.SPDEF, 1, true)
       .attr(AddBattlerTagAttr, BattlerTagType.CHARGED, true, false),
     new StatusMove(Moves.TAUNT, Type.DARK, 100, 20, -1, 0, 3)
-      .unimplemented(),
+      .attr(AddBattlerTagAttr, BattlerTagType.TAUNT)
+      .condition((user, target, move) => (target.findTag(t => t instanceof TauntTag) === undefined))
+      .partial(),
     new StatusMove(Moves.HELPING_HAND, Type.NORMAL, -1, 20, -1, 5, 3)
       .attr(AddBattlerTagAttr, BattlerTagType.HELPING_HAND)
       .target(MoveTarget.NEAR_ALLY),
