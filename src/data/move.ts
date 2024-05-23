@@ -1852,6 +1852,62 @@ export class SunlightChargeAttr extends ChargeAttr {
   }
 }
 
+
+/**
+ * 
+ * Special handler for the Sky Drop Move
+ * @extends ChargeAttr
+ * @see {@link firstTurn}
+ * @see {@linkcode secondTurnText}
+ * @see {@linkcode apply}
+ * @see {@linkcode getCondition}
+ * 
+ */
+export class SkyDropChargeAttr extends ChargeAttr {
+  /** Add a flag because ChargeAttr skills use themselves twice instead of once over one-to-two turns */
+  private firstTurn: boolean;
+  /** Holder for Battle Message when the Target is released */
+  private secondTurnText: string;
+  constructor() {
+    super(ChargeAnim.SKY_DROP_CHARGING, 'took {TARGET}\ninto the sky!', BattlerTagType.FLYING, true);
+    this.firstTurn = true;
+    this.secondTurnText = "The {TARGET} was freed from the Sky Drop!";
+  }
+
+  /**
+   * Extends the apply function to allow for different battle messages between the 
+   * first and second turns.
+   * @param user The {@linkcode Pokemon} using Sky Drop
+   * @param target The {@linkcode Pokemon} targeted by the Sky Drop attack
+   * @param move the {@linkcode Move} being used (i.e. Sky Drop)
+   * @param args Any Additional Args
+   */
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): Promise<boolean> {
+    return new Promise(resolve => {
+      if(this.firstTurn){
+        this.firstTurn=false;
+      } else {
+        user.scene.queueMessage(` ${this.secondTurnText.replace('{TARGET}', target.name)}`);
+      }
+      
+      super.apply(user, target, move, args).then(result => {
+        resolve(result);
+      });
+    });
+  };
+
+  /**
+   * Check Target's weight and cause Sky Drop to fail is the target is more than 200kg
+   * @param target The {@linkcode Pokemon} targeted by the attack
+   * @returns false if the target is 200kg or more
+   */
+  getCondition(): MoveConditionFunc{
+    return (user, target, move) => target.getWeight() < 200;
+  } 
+  
+}
+
+
 export class ElectroShotChargeAttr extends ChargeAttr {
   private statIncreaseApplied: boolean;
   constructor() {
@@ -6278,7 +6334,7 @@ export function initMoves() {
     new AttackMove(Moves.HEX, Type.GHOST, MoveCategory.SPECIAL, 65, 100, 10, -1, 0, 5)
       .attr(MovePowerMultiplierAttr, (user, target, move) => target.status ? 2 : 1),
     new AttackMove(Moves.SKY_DROP, Type.FLYING, MoveCategory.PHYSICAL, 60, 100, 10, -1, 0, 5)
-      .attr(ChargeAttr, ChargeAnim.SKY_DROP_CHARGING, "took {TARGET}\ninto the sky!", BattlerTagType.FLYING) // TODO: Add 2nd turn message
+      .attr(SkyDropChargeAttr)
       .condition(failOnGravityCondition)
       .ignoresVirtual(), 
     new SelfStatusMove(Moves.SHIFT_GEAR, Type.STEEL, -1, 10, -1, 0, 5)
