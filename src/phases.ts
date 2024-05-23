@@ -1579,6 +1579,10 @@ export class CheckSwitchPhase extends BattlePhase {
     super.start();
 
     const pokemon = this.scene.getPlayerField()[this.fieldIndex];
+    
+    this.scene.getParty().forEach((pokemon) => {
+      pokemon.updateNameColor();
+    });
 
     if (this.scene.field.getAll().indexOf(pokemon) === -1) {
       this.scene.unshiftPhase(new SummonMissingPhase(this.scene, this.fieldIndex));
@@ -1656,6 +1660,10 @@ export class TurnInitPhase extends FieldPhase {
 
         this.scene.pushPhase(pokemon.isPlayer() ? new CommandPhase(this.scene, i) : new EnemyCommandPhase(this.scene, i - BattlerIndex.ENEMY));
       }
+    });
+
+    this.scene.getParty().forEach((pokemon) => {
+      pokemon.updateNameColor();
     });
 
     this.scene.pushPhase(new TurnStartPhase(this.scene));
