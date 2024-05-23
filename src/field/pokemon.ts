@@ -1047,7 +1047,7 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
   }
 
   getLevelMoves(startingLevel?: integer, includeEvolutionMoves: boolean = false, simulateEvolutionChain: boolean = false): LevelMoves {
-    const ret: LevelMoves = [];
+    let ret: LevelMoves = [];
     let levelMoves: LevelMoves = [];
     if (!startingLevel)
       startingLevel = this.level;
@@ -1105,6 +1105,10 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
           break;
         ret.push(lm);
       }
+    }
+
+    if (this.scene.hideUnimplementedMoves) {
+      ret = ret.filter(([, move]) => allMoves[move].isImplemented())
     }
 
     return ret;
