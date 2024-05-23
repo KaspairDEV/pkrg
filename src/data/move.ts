@@ -16,7 +16,7 @@ import { UnswappableAbilityAbAttr, UncopiableAbilityAbAttr, UnsuppressableAbilit
 import { Abilities } from "./enums/abilities";
 import { allAbilities } from './ability';
 import { PokemonHeldItemModifier, BerryModifier, PreserveBerryModifier } from "../modifier/modifier";
-import { BattlerIndex } from "../battle";
+import Battle, { BattlerIndex } from "../battle";
 import { Stat } from "./pokemon-stat";
 import { TerrainType } from "./terrain";
 import { SpeciesFormChangeActiveTrigger } from "./pokemon-forms";
@@ -3557,6 +3557,41 @@ export class FaintCountdownAttr extends AddBattlerTagAttr {
   }
 }
 
+/**
+ * Drops the target's immunity to types it is immune to
+ * and resets its evasiveness ie. Odor Sleuth, Miracle Eye,
+ * Foresight.
+ * 
+ * @extends AddBattlerTagAttr
+ * @see {@linkcode apply}
+ */
+export class ExposedMoveAttr extends AddBattlerTagAttr {
+  constructor(tagType: BattlerTagType) {
+    super(tagType, false, true);
+  }
+
+  /**
+   * Resets the target's evasiveness and applies the
+   * {@linkcode IgnoreTypeImmunityTag}
+   * @param user {@linkcode Pokemon} using this move 
+   * @param target {@linkcode Pokemon} target of this move
+   * @param move {@linkcode Move} being used
+   * @param args N/A
+   * @returns true if the function succeeds
+   */
+  apply(user: Pokemon, target: Pokemon, move: Move, args: any[]): boolean {
+    if (!super.apply(user, target, move, args))
+      return false;
+
+    target.summonData.battleStats[BattleStat.EVA] = 0;
+    target.updateInfo();
+
+    target.scene.queueMessage(`${getPokemonMessage(user, " identified\n")}${getPokemonMessage(target, "!")}`);
+
+    return true;
+  }
+}
+
 /** 
  * Attribute used when a move hits a {@linkcode BattlerTagType} for double damage 
  * @extends MoveAttr
@@ -5259,7 +5294,7 @@ export function initMoves() {
       .attr(StatusEffectAttr, StatusEffect.PARALYSIS)
       .ballBombMove(),
     new StatusMove(Moves.FORESIGHT, Type.NORMAL, -1, 40, -1, 0, 2)
-      .unimplemented(),
+      .attr(ExposedMoveAttr, BattlerTagType.IGNORE_GHOST),
     new SelfStatusMove(Moves.DESTINY_BOND, Type.GHOST, -1, 5, -1, 0, 2)
       .ignoresProtect()
       .condition(failOnBossCondition)
@@ -5611,7 +5646,7 @@ export function initMoves() {
       .attr(StatChangeAttr, BattleStat.SPATK, -2, true)
       .attr(HealStatusEffectAttr, true, StatusEffect.FREEZE),
     new StatusMove(Moves.ODOR_SLEUTH, Type.NORMAL, -1, 40, -1, 0, 3)
-      .unimplemented(),
+      .attr(ExposedMoveAttr, BattlerTagType.IGNORE_GHOST),
     new AttackMove(Moves.ROCK_TOMB, Type.ROCK, MoveCategory.PHYSICAL, 60, 95, 15, 100, 0, 3)
       .attr(StatChangeAttr, BattleStat.SPD, -1)
       .makesContact(false),
@@ -5720,7 +5755,7 @@ export function initMoves() {
       .attr(AddArenaTagAttr, ArenaTagType.GRAVITY, 5)
       .target(MoveTarget.BOTH_SIDES),
     new StatusMove(Moves.MIRACLE_EYE, Type.PSYCHIC, -1, 40, -1, 0, 4)
-      .unimplemented(),
+      .attr(ExposedMoveAttr, BattlerTagType.IGNORE_DARK),
     new AttackMove(Moves.WAKE_UP_SLAP, Type.FIGHTING, MoveCategory.PHYSICAL, 70, 100, 10, -1, 0, 4)
       .attr(MovePowerMultiplierAttr, (user, target, move) => target.status?.effect === StatusEffect.SLEEP ? 2 : 1)
       .attr(HealStatusEffectAttr, false, StatusEffect.SLEEP),
