@@ -243,7 +243,7 @@ export abstract class PokemonSpeciesForm {
     const showGenderDiffs = this.genderDiffs && female && ![ SpeciesFormKey.MEGA, SpeciesFormKey.GIGANTAMAX ].find(k => formSpriteKey === k);
 
     const baseSpriteKey = `${showGenderDiffs ? "female__" : ""}${this.speciesId}${formSpriteKey ? `-${formSpriteKey}` : ""}`;
-    
+
     let config = variantData;
     `${back ? "back__" : ""}${baseSpriteKey}`.split("__").map(p => config ? config = config[p] : null);
     const variantSet = config as VariantSet;
@@ -681,7 +681,7 @@ export default class PokemonSpecies extends PokemonSpeciesForm implements Locali
     if (noEvolutionChance === 1 || Phaser.Math.RND.realInRange(0, 1) < noEvolutionChance) {
       return this.speciesId;
     }
-      
+
     const randValue = evolutionPool.size === 1 ? 0 : Utils.randSeedInt(totalWeight);
 
     for (const weight of evolutionPool.keys()) {
