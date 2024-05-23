@@ -4410,7 +4410,7 @@ export class AttemptCapturePhase extends PokemonPhase {
         this.scene.clearEnemyHeldItemModifiers();
         this.scene.field.remove(pokemon, true);
       };
-      const addToParty = () => {
+      const addToParty = (modifiersFromReleasedPokemon?: PokemonHeldItemModifier[]) => {
         const newPokemon = pokemon.addToParty(this.pokeballType);
         const modifiers = this.scene.findModifiers(m => m instanceof PokemonHeldItemModifier, false);
         if (this.scene.getParty().filter(p => p.isShiny()).length === 6)
@@ -4418,8 +4418,10 @@ export class AttemptCapturePhase extends PokemonPhase {
         Promise.all(modifiers.map(m => this.scene.addModifier(m, true))).then(() => {
           this.scene.updateModifiers(true);
           removePokemon();
-          if (newPokemon)
+          if (newPokemon) {
+            modifiersFromReleasedPokemon?.forEach(m => this.scene.tryTransferHeldItemModifier(m, newPokemon, true, false));
             newPokemon.loadAssets().then(end);
+          }
           else
             end();
         });
@@ -4430,12 +4432,24 @@ export class AttemptCapturePhase extends PokemonPhase {
             this.scene.ui.showText(`Your party is full.\nRelease a Pokémon to make room for ${pokemon.name}?`, null, () => {
               this.scene.pokemonInfoContainer.makeRoomForConfirmUi();
               this.scene.ui.setMode(Mode.CONFIRM, () => {
-                this.scene.ui.setMode(Mode.PARTY, PartyUiMode.RELEASE, this.fieldIndex, (slotIndex: integer, _option: PartyOption) => {
+                this.scene.ui.setMode(Mode.PARTY, PartyUiMode.RELEASE, this.fieldIndex, (releasedPokemonSlotIndex: integer, _option: PartyOption) => {
+                  const releasedPokemon = releasedPokemonSlotIndex < 6 ? this.scene.getParty()[releasedPokemonSlotIndex] : null;
+                  const releasedItems =  releasedPokemon?.getTransferrableHeldItems();
                   this.scene.ui.setMode(Mode.MESSAGE).then(() => {
-                    if (slotIndex < 6)
-                      addToParty();
-                    else
+                    if (releasedPokemonSlotIndex < 6) {
+                      if (releasedItems != null && releasedItems.length > 0) {
+                        this.scene.ui.showText(`You transferred all items held by ${releasedPokemon.name} to ${pokemon.name}.`, null, () => {
+                          addToParty(releasedItems);
+                        }, 0, true);
+                      }
+                      else {
+                        this.scene.ui.clearText();
+                        addToParty();
+                      }
+                    }
+                    else {
                       promptRelease();
+                    }
                   });
                 });
               }, () => {
@@ -4566,8 +4580,7 @@ export class SelectModifierPhase extends BattlePhase {
             this.scene.ui.setModeWithoutClear(Mode.PARTY, PartyUiMode.MODIFIER_TRANSFER, -1, (fromSlotIndex: integer, itemIndex: integer, toSlotIndex: integer) => {
               if (toSlotIndex !== undefined && fromSlotIndex < 6 && toSlotIndex < 6 && fromSlotIndex !== toSlotIndex && itemIndex > -1) {
                 this.scene.ui.setMode(Mode.MODIFIER_SELECT, this.isPlayer(), typeOptions, modifierSelectCallback, this.getRerollCost(typeOptions, this.scene.lockModifierTiers)).then(() => {
-                  const itemModifiers = this.scene.findModifiers(m => m instanceof PokemonHeldItemModifier
-                    && (m as PokemonHeldItemModifier).getTransferrable(true) && (m as PokemonHeldItemModifier).pokemonId === party[fromSlotIndex].id) as PokemonHeldItemModifier[];
+                  const itemModifiers = party[fromSlotIndex].getTransferrableHeldItems();
                   const itemModifier = itemModifiers[itemIndex];
                   this.scene.tryTransferHeldItemModifier(itemModifier, party[toSlotIndex], true, true);
                 });
