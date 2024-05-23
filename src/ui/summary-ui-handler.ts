@@ -21,7 +21,7 @@ import { PlayerGender } from "../system/game-data";
 import { Variant, getVariantTint } from "#app/data/variant";
 import {Button} from "../enums/buttons";
 import { Ability } from "../data/ability.js";
-
+import {modifierSortFunc} from "../modifier/modifier"
 enum Page {
   PROFILE,
   STATS,
@@ -808,10 +808,11 @@ export default class SummaryUiHandler extends UiHandler {
           statValue.setOrigin(1, 0);
           statsContainer.add(statValue);
         });
+//Sort items by item type then item name.
+        let itemModifiers = (this.scene.findModifiers(m => m instanceof PokemonHeldItemModifier
+          && (m as PokemonHeldItemModifier).pokemonId === this.pokemon.id, true) as PokemonHeldItemModifier[])
+            .sort(modifierSortFunc);
 
-        const itemModifiers = this.scene.findModifiers(m => m instanceof PokemonHeldItemModifier
-          && (m as PokemonHeldItemModifier).pokemonId === this.pokemon.id, true) as PokemonHeldItemModifier[];
-        
         itemModifiers.forEach((item, i) => {
           const icon = item.getIcon(this.scene, true);
 
