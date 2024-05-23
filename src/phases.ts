@@ -3491,7 +3491,7 @@ export class TrainerVictoryPhase extends BattlePhase {
   }
 
   start() {
-    this.scene.disableMenu = true;
+    this.scene.disableMenu = false;
 
     this.scene.playBgm(this.scene.currentBattle.trainer.config.victoryBgm);
 
