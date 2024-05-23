@@ -418,6 +418,186 @@ export const trainerTypeDialogue = {
       ]
     }
   ],
+  [TrainerType.ROCKET_GRUNT]: [
+    {
+      encounter: [
+        "We will never let you into Lab(N)!"
+      ],
+      victory: [
+        "Maybe it's Lab(P)?"
+      ]
+    }
+  ],
+  [TrainerType.MAGMA_GRUNT]: [
+    {
+      encounter: [
+        "There's too much water!"
+      ],
+      victory: [
+        "7.8/10"
+      ]
+    }
+  ],
+  [TrainerType.AQUA_GRUNT]: [
+    {
+      encounter: [
+        "There's not enough water!"
+      ],
+      victory: [
+        "7.8/10"
+      ]
+    }
+  ],
+  [TrainerType.GALACTIC_GRUNT]: [
+    {
+      encounter: [
+        "Don't mess with Team Galactic!"
+      ],
+      victory: [
+        "Shut down..."
+      ]
+    }
+  ],
+  [TrainerType.PLASMA_GRUNT]: [
+    {
+      encounter: [
+        "Here I come!"
+      ],
+      victory: [
+        "Plasmaaaaaaaaa!"
+      ]
+    }
+  ],
+  [TrainerType.FLARE_GRUNT]: [
+    {
+      encounter: [
+        "Fashion is most important to us!"
+      ],
+      victory: [
+        "The future doesn't look bright for me!"
+      ]
+    }
+  ],
+  [TrainerType.ROCKET_BOSS_GIOVANNI_1]: [
+    {
+      encounter: [
+        "So! I must say, I am impressed you got here!"
+      ],
+      victory: [
+        "You only won since my abilities are (N)"
+      ]
+    }
+  ],
+  [TrainerType.ROCKET_BOSS_GIOVANNI_2]: [
+    {
+      encounter: [
+        "For your insolence, you will feel a world of pain!"
+      ],
+      victory: [
+        "How is this possible...?"
+      ]
+    }
+  ],
+  [TrainerType.MAXIE]: [
+    {
+      encounter: [
+        "After defeating you I will remove all the water biomes"
+      ],
+      victory: [
+        "But why...?"
+      ]
+    }
+  ],
+  [TrainerType.MAXIE_2]: [
+    {
+      encounter: [
+        "do I need salt cure?"
+      ],
+      victory: [
+        "I... I lost again?"
+      ]
+    }
+  ],
+  [TrainerType.ARCHIE]: [
+    {
+      encounter: [
+        "After defeating you I will send you to water jail"
+      ],
+      victory: [
+        "But why...?"
+      ]
+    }
+  ],
+  [TrainerType.ARCHIE_2]: [
+    {
+      encounter: [
+        "do I bring soak?"
+      ],
+      victory: [
+        "I... I lost again?"
+      ]
+    }
+  ],
+  [TrainerType.CYRUS]: [
+    {
+      encounter: [
+        "I will make you regret paying heed to your heart"
+      ],
+      victory: [
+        "Interesting. And quite curious."
+      ]
+    }
+  ],
+  [TrainerType.CYRUS_2]: [
+    {
+      encounter: [
+        "I'm going to completely crush you!"
+      ],
+      victory: [
+        "How come I didn't get a 680BST legendary?"
+      ]
+    }
+  ],
+  [TrainerType.GHETSIS]: [
+    {
+      encounter: [
+        "[Ominous latin chanting in the background]"
+      ],
+      victory: [
+        "Don't call me Dennis!"
+      ]
+    }
+  ],
+  [TrainerType.GHETSIS_2]: [
+    {
+      encounter: [
+        "Chat who should I fuse?"
+      ],
+      victory: [
+        "I would have won if I rolled DNA splicers!"
+      ]
+    }
+  ],
+  [TrainerType.LYSANDRE]: [
+    {
+      encounter: [
+        "I copied my team from Cyrus"
+      ],
+      victory: [
+        "Maybe I should have copied someone else"
+      ]
+    }
+  ],
+  [TrainerType.LYSANDRE_2]: [
+    {
+      encounter: [
+        "Can someone recommend me some good pokemon?"
+      ],
+      victory: [
+        "Who's a good carry for endless?"
+      ]
+    }
+  ],
   [TrainerType.BROCK]: {
     encounter: [
       "My expertise on Rock-type Pokémon will take you down! Come on!",
