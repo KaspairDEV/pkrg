@@ -15,7 +15,7 @@ import { GameData, PlayerGender } from './system/game-data';
 import StarterSelectUiHandler from './ui/starter-select-ui-handler';
 import { TextStyle, addTextObject } from './ui/text';
 import { Moves } from "./data/enums/moves";
-import { allMoves } from "./data/move";
+import Move, { allMoves } from "./data/move";
 import { initMoves } from './data/move';
 import { ModifierPoolType, getDefaultModifierTypeForTier, getEnemyModifierTypesForWave, getLuckString, getLuckTextTint, getModifierPoolForType, getPartyLuckValue } from './modifier/modifier-type';
 import AbilityBar from './ui/ability-bar';
@@ -82,6 +82,36 @@ export interface PokeballCounts {
 
 export type AnySound = Phaser.Sound.WebAudioSound | Phaser.Sound.HTML5AudioSound | Phaser.Sound.NoAudioSound;
 
+export class MoveUsedEvent extends Event {
+	public userIndex: number;
+	public move: Move;
+	public ppUsed: number;
+	constructor(userIndex: number, move: Move, ppUsed: number) {
+		super('onMoveUsed');
+
+		this.userIndex = userIndex;
+		this.move = move;
+		this.ppUsed = ppUsed;
+	}
+}
+export class TurnInitEvent extends Event {
+	constructor() {
+		super('onTurnInit');
+	}
+}
+export class TurnEndEvent extends Event {
+	public turnCount: number;
+	constructor(turnCount: number) {
+		super('onTurnEnd');
+
+		this.turnCount = turnCount;
+	}
+}
+export class NewArenaEvent extends Event {
+	constructor() {
+		super('onNewArena');
+	}
+}
 export default class BattleScene extends SceneBase {
 	public rexUI: UIPlugin;
 	public inputController: InputsController;
@@ -189,6 +219,8 @@ export default class BattleScene extends SceneBase {
 	public rngCounter: integer = 0;
 	public rngSeedOverride: string = '';
 	public rngOffset: integer = 0;
+
+	public readonly eventTarget: EventTarget = new EventTarget();
 
 	constructor() {
 		super('battle');
@@ -952,6 +984,7 @@ export default class BattleScene extends SceneBase {
 
 	newArena(biome: Biome): Arena {
 		this.arena = new Arena(this, biome, Biome[biome].toLowerCase());
+		this.eventTarget.dispatchEvent(new NewArenaEvent());
 
 		this.arenaBg.pipelineData = { terrainColorRatio: this.arena.getBgTerrainColorRatioForBiome() };
 
@@ -1250,6 +1283,12 @@ export default class BattleScene extends SceneBase {
 		this.partyExpBar.setY(offsetY);
 		this.candyBar.setY(offsetY + 15);
 		this.ui?.achvBar.setY(this.game.canvas.height / 6 + offsetY);
+	}
+
+	sendTextToBack(): void {
+		this.fieldUI.sendToBack(this.waveCountText);
+		this.fieldUI.sendToBack(this.moneyText);
+		this.fieldUI.sendToBack(this.scoreText);
 	}
 
 	addFaintedEnemyScore(enemy: EnemyPokemon): void {
