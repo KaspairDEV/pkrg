@@ -442,7 +442,25 @@ export class Arena {
     }
   }
 
+  overrideTint(): [integer, integer, integer] {
+    if (!Overrides.ARENA_TINT_OVERRIDE) return;
+    switch(Overrides.ARENA_TINT_OVERRIDE) {
+      case TimeOfDay.DUSK:
+        return [ 98, 48, 73 ].map(c => Math.round((c + 128) / 2)) as [integer, integer, integer];
+        break
+      case (TimeOfDay.NIGHT):
+        return [ 64, 64, 64 ];
+        break
+      case TimeOfDay.DAWN:
+      case TimeOfDay.DAY:
+      default:
+        return [ 128, 128, 128 ];
+        break
+    }
+  }
+
   getDayTint(): [integer, integer, integer] {
+    if (Overrides.ARENA_TINT_OVERRIDE) return this.overrideTint();
     switch (this.biomeType) {
       case Biome.ABYSS:
         return [ 64, 64, 64 ];
@@ -452,6 +470,7 @@ export class Arena {
   }
 
   getDuskTint(): [integer, integer, integer] {
+    if (Overrides.ARENA_TINT_OVERRIDE) return this.overrideTint();
     if (!this.isOutside())
       return [ 0, 0, 0 ];
 
@@ -462,6 +481,7 @@ export class Arena {
   }
 
   getNightTint(): [integer, integer, integer] {
+    if (Overrides.ARENA_TINT_OVERRIDE) return this.overrideTint();
     switch (this.biomeType) {
       case Biome.ABYSS:
       case Biome.SPACE:
