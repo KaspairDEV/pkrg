@@ -48,6 +48,7 @@ import { BerryType } from "../data/berry";
 import i18next from "../plugins/i18n";
 import { speciesEggMoves } from "../data/egg-moves";
 import { ModifierTier } from "../modifier/modifier-tier";
+import { GameModes} from "../game-mode";
 
 export enum FieldPosition {
   CENTER,
@@ -1218,7 +1219,30 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     }
   }
 
+  /**
+   * Function that tries to set a Pokemon shiny based on the trainer's trainer ID and secret ID
+   * Uncatchable Pokemon are unable to be set to shiny
+   * 
+   * The exact mechanic is that it calculates E as the XOR of the player's trainer ID and secret ID
+   * F is calculated as the XOR of the first 16 bits of the Pokemon's ID with the last 16 bits
+   * The XOR of E and F are then compared to the thresholdOverride (default case 32) to see whether or not to generate a shiny
+   * @param thresholdOverride number that is divided by 2^16 (65536) to get the shiny chance
+   * @returns true if the Pokemon has been set as a shiny, false otherwise
+   */
   trySetShiny(thresholdOverride?: integer): boolean {
+    // Opponent trainers cannot have shinies
+    if (!this.isPlayer() && this.hasTrainer()) {
+      return false;
+    }
+    // Shiny Pokemon should not spawn in the end biome in endless
+    if (!(this.scene.gameMode.modeId === GameModes.CLASSIC) && this.scene.arena.biomeType === Biome.END) {
+      return false;
+    }
+    // Unowned paradox pokemon are also shinylocked in classic
+    if (this.scene.gameMode.modeId === GameModes.CLASSIC && !this.scene.gameData.dexData[this.species.speciesId].caughtAttr) {
+      return false;
+    }
+
     const rand1 = Utils.binToDec(Utils.decToBin(this.id).substring(0, 16));
     const rand2 = Utils.binToDec(Utils.decToBin(this.id).substring(16, 32));
 
@@ -1246,18 +1270,25 @@ export default abstract class Pokemon extends Phaser.GameObjects.Container {
     return this.shiny;
   }
 
+  /**
+   * Generates a variant
+   * Has a 10% of returning 2 (epic variant)
+   * And a 20% of returning 1 (rare variant)
+   * Returns 0 (basic shiny) if there is no variant or 70% of the time otherwise
+   * @returns the shiny variant
+   */
   generateVariant(): Variant {
     if (!this.shiny || !variantData.hasOwnProperty(this.species.speciesId)) {
       return 0;
     }
     const rand = Utils.randSeedInt(10);
-    if (rand > 3) {
-      return 0;
+    if (rand >= 3) {
+      return 0;             // 7/10
+    } else if (rand >= 1) {
+      return 1;             // 2/10
+    } else {
+      return 2;             // 1/10
     }
-    if (rand) {
-      return 1;
-    }
-    return 2;
   }
 
   generateFusionSpecies(forStarter?: boolean): void {
